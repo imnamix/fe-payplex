@@ -1,9 +1,14 @@
 // Register.jsx
 import React, { useState } from "react";
 import InputField from "../../components/common/InputField";
-import { Link } from "react-router-dom";
+import ImagePreviewModal from "../../components/common/ImagePreviewModal";
+import Spinner from "../../components/common/Spinner";
+import { Link, useNavigate } from "react-router-dom";
+import { registerUser, uploadImage } from "../../services/authService";
+import toast from "react-hot-toast";
 
 const Register = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: "",
     address: "",
@@ -11,11 +16,17 @@ const Register = () => {
     contactNumber: "",
     dob: "",
     password: "",
+    confirmPassword: "",
     profilePhoto: null,
   });
 
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [profilePhotoUrl, setProfilePhotoUrl] = useState("");
+  const [photoPreview, setPhotoPreview] = useState("");
+  const [photoError, setPhotoError] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const validateEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -30,6 +41,14 @@ const Register = () => {
     return "";
   };
 
+  const validateContactNumber = (number) => {
+    const phoneRegex = /^[0-9]{10}$/;
+    if (!number) return "Contact number is required";
+    if (!phoneRegex.test(number))
+      return "Please enter a valid 10-digit contact number";
+    return "";
+  };
+
   const validateField = (name, value) => {
     switch (name) {
       case "name":
@@ -39,7 +58,7 @@ const Register = () => {
       case "email":
         return validateEmail(value);
       case "contactNumber":
-        return value ? "" : "Contact number is required";
+        return validateContactNumber(value);
       case "dob":
         return value ? "" : "Date of birth is required";
       case "password":
@@ -74,10 +93,66 @@ const Register = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  // Handle profile photo selection and upload
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files[0];
+
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif"];
+    if (!validTypes.includes(file.type)) {
+      setPhotoError("Please select a valid image file (JPEG, JPG, PNG, GIF)");
+      toast.error("Invalid file type. Please select an image.");
+      return;
+    }
+
+    // Validate file size (5MB max)
+    if (file.size > 5 * 1024 * 1024) {
+      setPhotoError("File size must be less than 5MB");
+      toast.error("File size must be less than 5MB");
+      return;
+    }
+
+    setPhotoError("");
+    setFormData((prev) => ({
+      ...prev,
+      profilePhoto: file,
+    }));
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPhotoPreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+
+    // Upload image to server
+    setIsUploadingPhoto(true);
+    try {
+      const response = await uploadImage(file);
+      setProfilePhotoUrl(response.imageUrl);
+      toast.success("Photo uploaded successfully!");
+    } catch (error) {
+      const errorMsg = error?.message || "Failed to upload photo";
+      setPhotoError(errorMsg);
+      toast.error(errorMsg);
+      console.error("Photo upload error:", error);
+      setPhotoPreview("");
+      setFormData((prev) => ({
+        ...prev,
+        profilePhoto: null,
+      }));
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     const newErrors = {};
+
     Object.keys(formData).forEach((key) => {
       if (key !== "profilePhoto") {
         const error = validateField(key, formData[key]);
@@ -86,21 +161,46 @@ const Register = () => {
     });
 
     setErrors(newErrors);
+    if (Object.keys(newErrors).length !== 0) return;
 
-    if (Object.keys(newErrors).length === 0) {
-      setIsSubmitting(true);
+    setIsSubmitting(true);
 
-      // Example: FormData for file upload
-      const payload = new FormData();
-      Object.keys(formData).forEach((key) => {
-        payload.append(key, formData[key]);
-      });
+    try {
+      const registerData = {
+        name: formData.name,
+        address: formData.address,
+        email: formData.email,
+        contactNumber: formData.contactNumber,
+        dob: formData.dob,
+        password: formData.password,
+        profilePhoto: profilePhotoUrl || null,
+      };
 
-      setTimeout(() => {
-        console.log("Register payload:", formData);
-        setIsSubmitting(false);
-      }, 1000);
+      const response = await registerUser(registerData);
+
+      toast.success(
+        response.message || "Registration successful! OTP sent to your email.",
+      );
+
+      localStorage.setItem("userId", response.userId);
+      localStorage.setItem("userEmail", response.email);
+
+      setTimeout(() => navigate("/verify-otp"), 200);
+    } catch (err) {
+      toast.error(
+        err?.message || err?.error || "Registration failed. Please try again.",
+      );
+      console.error("Register error:", err);
+    } finally {
+      setIsSubmitting(false);
     }
+  };
+
+  const handleRemovePhoto = () => {
+    setPhotoPreview("");
+    setProfilePhotoUrl("");
+    setPhotoError("");
+    setFormData((prev) => ({ ...prev, profilePhoto: null }));
   };
 
   return (
@@ -209,20 +309,64 @@ const Register = () => {
             {/* Profile Photo */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Profile Photo
+                Profile Photo (Optional)
               </label>
-              <input
-                type="file"
-                name="profilePhoto"
-                accept="image/*"
-                onChange={handleChange}
-                className="block w-full text-sm text-gray-500
-                  file:mr-4 file:py-2 file:px-4
-                  file:rounded-lg file:border-0
-                  file:text-sm file:font-medium
-                  file:bg-blue-50 file:text-blue-700
-                  hover:file:bg-blue-100"
-              />
+
+              {!profilePhotoUrl && (
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoChange}
+                  disabled={isUploadingPhoto}
+                  className="block w-full text-sm text-gray-500
+file:mr-4 file:py-2 file:px-4
+file:rounded-lg file:border-0
+file:text-sm file:font-medium
+file:bg-blue-50 file:text-blue-700
+hover:file:bg-blue-100"
+                />
+              )}
+
+              {photoError && (
+                <p className="text-red-600 text-sm mt-1">{photoError}</p>
+              )}
+
+              {photoPreview && (
+                <div className="relative mt-4 inline-flex flex-col items-center gap-2">
+                  {/* Image */}
+
+                  {/* Spinner under image */}
+                  {isUploadingPhoto ? (
+                    <div className="w-15 h-15 object-cover rounded-lg border cursor-pointer hover:opacity-90">
+                      <div className="mt-4">
+                      <Spinner />
+                      </div>
+                    </div>
+                  ) : (
+                    <img
+                      src={photoPreview}
+                      alt="Profile Preview"
+                      onClick={() => setIsModalOpen(true)}
+                      className="w-15 h-15 object-cover rounded-lg border cursor-pointer hover:opacity-90"
+                    />
+                  )}
+
+                  {/* Remove Button */}
+                  <button
+                    type="button"
+                    onClick={handleRemovePhoto}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 text-sm flex items-center justify-center hover:bg-red-600"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+
+              {profilePhotoUrl && !isUploadingPhoto && (
+                <p className="text-green-600 text-sm mt-2">
+                  ✓ Photo uploaded successfully
+                </p>
+              )}
             </div>
 
             <button
@@ -250,6 +394,11 @@ const Register = () => {
           </div>
         </div>
       </div>
+      <ImagePreviewModal
+        isOpen={isModalOpen}
+        image={photoPreview}
+        onClose={() => setIsModalOpen(false)}
+      />
     </div>
   );
 };

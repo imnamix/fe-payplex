@@ -1,0 +1,48 @@
+/* Dashboard Styles */
+
+/* Smooth transitions */
+* {
+  transition: all 0.3s ease;
+}
+
+/* Line clamp utility for older browsers */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Spinner animation */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Hover effects for cards */
+.hover\:shadow-lg:hover {
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Scale effect for images */
+@keyframes scaleUp {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.05);
+  }
+}
+
+.hover\:scale-105:hover {
+  transform: scale(1.05);
+}

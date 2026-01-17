@@ -1,0 +1,20 @@
+import React from 'react';
+import { Navigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+
+/**
+ * Protected Route Component
+ * Checks if user is authenticated before allowing access
+ * If not authenticated, redirects to login page
+ */
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated, token } = useSelector(state => state.auth);
+
+  if (!isAuthenticated || !token) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+};
+
+export default ProtectedRoute;

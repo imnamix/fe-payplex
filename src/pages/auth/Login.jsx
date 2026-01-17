@@ -1,9 +1,15 @@
 // LoginPage.jsx
 import React, { useState } from "react";
+import { useDispatch } from "react-redux";
 import InputField from "../../components/common/InputField";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { loginUser } from "../../services/authService";
+import { setAuthData } from "../../store/slices/authSlice";
+import toast from "react-hot-toast";
 
 const Login = () => {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -61,7 +67,7 @@ const Login = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     // Validate all fields
@@ -72,15 +78,35 @@ const Login = () => {
     });
 
     setErrors(newErrors);
+    if (Object.keys(newErrors).length !== 0) return;
 
-    if (Object.keys(newErrors).length === 0) {
-      setIsSubmitting(true);
-      // Simulate API call
-      setTimeout(() => {
-        console.log("Login successful:", formData);
-        setIsSubmitting(false);
-        // Add your actual login logic here
-      }, 1000);
+    setIsSubmitting(true);
+
+    try {
+      const response = await loginUser(formData.email, formData.password);
+
+      // Check if verification is required
+      if (response?.requiresVerification) {
+        toast.success(response.message || "OTP sent to your email");
+        localStorage.setItem("userId", response.userId);
+        // Use a short timeout to ensure UI updates before navigation
+        setTimeout(() => navigate("/verify-otp"), 100);
+      } else {
+        // Successful login - dispatch to Redux
+        if (response?.token && response?.user) {
+          dispatch(setAuthData({
+            token: response.token,
+            user: response.user,
+          }));
+          toast.success(response.message || "Login successful!");
+          setTimeout(() => navigate("/dashboard"), 500);
+        }
+      }
+    } catch (err) {
+      toast.error(err?.message || "Login failed. Please try again.");
+      console.error("Login error:", err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -152,27 +178,8 @@ const Login = () => {
               `}
             >
               {isSubmitting ? (
-                <span className="flex items-center justify-center">
-                  <svg
-                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
+                <span className="flex items-center justify-center gap-2">
+                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
                   Signing In...
                 </span>
               ) : (
