@@ -3,6 +3,7 @@ import axios from 'axios';
 // Create axios instance
 const api = axios.create({
   baseURL: 'https://be-payplex.vercel.app/api' || 'http://localhost:3000/api',
+  // baseURL: 'http://localhost:3000/api',
   timeout: 50000,
   headers: {
     'Content-Type': 'application/json',
@@ -39,7 +40,7 @@ api.interceptors.response.use(
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       localStorage.removeItem('userId');
-      window.location.href = '/';
+      window.location.href = '/login';
     }
     return Promise.reject(error);
   }

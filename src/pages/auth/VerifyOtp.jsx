@@ -65,7 +65,7 @@ const VerifyOtp = () => {
     try {
       const response = await verifyOTP(userId, enteredOtp);
       toast.success(response?.message || "OTP verified successfully!");
-      setTimeout(() => navigate("/"), 500);
+      setTimeout(() => navigate("/login"), 500);
     } catch (error) {
       toast.error(error?.message || "OTP verification failed");
       console.error("OTP verification error:", error);

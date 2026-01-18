@@ -99,7 +99,7 @@ const Login = () => {
             user: response.user,
           }));
           toast.success(response.message || "Login successful!");
-          setTimeout(() => navigate("/dashboard"), 500);
+          setTimeout(() => navigate("/"), 500);
         }
       }
     } catch (err) {

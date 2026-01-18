@@ -1,19 +1,44 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Search, ShoppingCart, User, ShoppingBag, LogOut } from "lucide-react";
+import { useSelector, useDispatch } from "react-redux";
+import { getCart } from "../../services/cartService";
+import { setCartItems } from "../../store/slices/cartSlice";
+import { clearAuthData } from "../../store/slices/authSlice";
 
 const Header = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-  // 🔑 Replace this with real auth state
-  const isLoggedIn = true;
+  // Get cart count from Redux
+  const { items: cartItems } = useSelector((state) => state.cart);
+  const { isAuthenticated } = useSelector((state) => state.auth);
 
   const [openMenu, setOpenMenu] = useState(false);
-
   const menuRef = useRef(null);
 
+  // Fetch cart count on mount if authenticated
+  useEffect(() => {
+    if (isAuthenticated && cartItems.length === 0) {
+      const fetchCartCount = async () => {
+        try {
+          const response = await getCart();
+          dispatch(setCartItems({
+            items: response.cart,
+            total: response.total,
+          }));
+        } catch (err) {
+          console.error("Error fetching cart count:", err);
+        }
+      };
+      fetchCartCount();
+    }
+  }, [isAuthenticated, dispatch, cartItems.length]);
+
+  const cartCount = cartItems.length;
+
   const handleUserClick = () => {
-    if (!isLoggedIn) {
+    if (!isAuthenticated) {
       navigate("/login");
     } else {
       setOpenMenu((prev) => !prev);
@@ -22,8 +47,10 @@ const Header = () => {
 
   const handleLogout = () => {
     setOpenMenu(false);
+    dispatch(clearAuthData());
     // TODO: clear auth state / tokens
     navigate("/login");
+
   };
 
   // ✅ Close menu on outside click
@@ -67,10 +94,15 @@ const Header = () => {
 
           {/* Cart */}
           <button
-            className="p-2 rounded-lg hover:bg-gray-100 transition"
+            className="p-2 rounded-lg hover:bg-gray-100 transition relative"
             onClick={() => navigate("/cart")}
           >
             <ShoppingCart className="h-6 w-6 text-gray-700" />
+            {cartCount > 0 && (
+              <span className="absolute top-0 right-0 bg-blue-700 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                {cartCount}
+              </span>
+            )}
           </button>
 
           {/* User */}
@@ -82,7 +114,7 @@ const Header = () => {
           </button>
 
           {/* User Dropdown */}
-          {isLoggedIn && openMenu && (
+          {isAuthenticated && openMenu && (
             <div className="absolute right-0 top-12 w-44 bg-white border border-gray-300 rounded-lg shadow-lg overflow-hidden">
               <button
                 onClick={() => {

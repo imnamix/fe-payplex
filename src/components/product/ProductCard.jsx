@@ -1,38 +1,55 @@
-import React from 'react';
-import { Eye } from 'lucide-react';
+import React from "react";
+import { Star } from "lucide-react";
 
-const ProductCard = ({ product, onViewAll }) => {
+const ProductCard = ({ product, onClick }) => {
+  const formattedPrice = Number(product.price).toFixed(2);
+
   return (
-    <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden flex flex-col h-full">
-      {/* Product Image */}
-      <div className="relative w-full h-48 bg-gray-200 overflow-hidden">
+    <div
+      onClick={() => onClick(product)}
+      className="bg-white rounded-lg shadow-md hover:shadow-lg transition overflow-hidden flex flex-col h-full"
+    >
+      {/* IMAGE */}
+      <div className="relative h-50 w-full overflow-hidden">
         <img
-          src={product.image || 'https://via.placeholder.com/300x200?text=Product'}
+          src={
+            product.image?.[0]?.url ||
+            "https://img.freepik.com/premium-vector/image-available-icon_268104-3618.jpg?semt=ais_hybrid&w=740&q=80"
+          }
           alt={product.title}
-          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+          className="w-full h-full object-contain hover:scale-105 transition-transform duration-300"
+          onError={(e) => {
+            e.currentTarget.src =
+              "https://img.freepik.com/premium-vector/image-available-icon_268104-3618.jpg?semt=ais_hybrid&w=740&q=80";
+          }}
         />
-        <div className="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 rounded text-sm font-semibold">
-          ${product.price}
-        </div>
       </div>
 
-      {/* Product Info */}
-      <div className="p-4 flex flex-col flex-grow">
-        <h3 className="font-bold text-lg text-gray-800 line-clamp-2 mb-2">
+      {/* CONTENT */}
+      <div className="p-3 flex flex-col flex-1">
+        {/* CATEGORY & RATING */}
+        <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+          <span className="uppercase tracking-wide">{product.category}</span>
+
+          {product.rating && (
+            <div className="flex items-center gap-1">
+              <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+              <span className="text-gray-700 font-medium">
+                {product.rating}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* PRODUCT NAME (fixed height) */}
+        <h3 className="text-sm font-semibold text-gray-800 line-clamp-2 min-h-[2.5rem]">
           {product.title}
         </h3>
-        <p className="text-gray-600 text-sm line-clamp-2 flex-grow mb-4">
-          {product.description}
-        </p>
 
-        {/* View All Button */}
-        <button
-          onClick={onViewAll}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors duration-200"
-        >
-          <Eye size={18} />
-          View All
-        </button>
+        {/* PRICE (always bottom) */}
+        <p className="text-base font-bold text-gray-900 mt-auto">
+          ₹{formattedPrice}
+        </p>
       </div>
     </div>
   );

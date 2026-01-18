@@ -385,7 +385,7 @@ hover:file:bg-blue-100"
             <p className="text-gray-600">
               Already have an account?{" "}
               <Link
-                to="/"
+                to="/login"
                 className="text-blue-600 hover:text-blue-800 font-medium transition-colors duration-200"
               >
                 Login

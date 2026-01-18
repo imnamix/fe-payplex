@@ -31,7 +31,7 @@ export const createProduct = async (productData) => {
 };
 
 // Get all products
-export const getAllProducts = async (page = 1, limit = 10, category = '', search = '') => {
+export const getAllProducts = async (page = 1, limit = 12, category = '', search = '') => {
   try {
     const params = {
       page,
@@ -66,7 +66,7 @@ export const getUserProducts = async (page = 1, limit = 10, status = '') => {
       ...(status && { status }),
     };
 
-    const response = await api.get('/products/my-products', { params });
+    const response = await api.get('/products/all', { params });
     return response.data;
   } catch (error) {
     throw error.response?.data || error.message;
@@ -102,6 +102,17 @@ export const getProductsByCategory = async (category, page = 1, limit = 10) => {
     };
 
     const response = await api.get(`/products/category/${category}`, { params });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+// Get featured products
+export const getFeaturedProducts = async (limit = 6) => {
+  try {
+    const params = { limit };
+    const response = await api.get('/products/all', { params });
     return response.data;
   } catch (error) {
     throw error.response?.data || error.message;

@@ -6,8 +6,11 @@ import Skeleton from "../../components/common/Skeleton";
 import toast from "react-hot-toast";
 import { X, Upload, ChevronDown } from "lucide-react";
 import { uploadProductImages, createProduct } from "../../services/productService";
+import { useNavigate } from "react-router-dom";
 
 const AddProducts = () => {
+  const navigate = useNavigate();
+  
   const [formData, setFormData] = useState({
     productName: "",
     price: "",
@@ -254,6 +257,7 @@ const AddProducts = () => {
       toast.dismiss(submitToast);
 
       toast.success("Product added successfully!");
+      navigate(-1)
 
       // Reset form
       setFormData({
